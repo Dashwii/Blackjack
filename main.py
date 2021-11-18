@@ -13,29 +13,5 @@ def main():
             main_menu.game_toggle = False
             main_menu.playing = True
 
+
 main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# if __name__ == "__main__":
-#     main()
-
-
-
-
-"""
-CHECKLIST
-- Create main menu, Create card and deck system
-"""
