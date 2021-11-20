@@ -1,4 +1,4 @@
-from modules.menus import MainMenu, GameMenu
+from modules.game import MainMenu, Game
 
 
 def main():
@@ -7,11 +7,14 @@ def main():
         if main_menu.playing:
             main_menu.game_loop()
         if main_menu.game_toggle:
-            game = GameMenu()
-            while game.playing:  # If game.playing not true assume user wants to return to menu for now
+            game = Game()
+            while game.playing:
                 game.game_loop()
+            print("i")
             main_menu.game_toggle = False
             main_menu.playing = True
+            del game
 
 
-main()
+if __name__ == "__main__":
+    main()
