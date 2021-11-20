@@ -10,7 +10,6 @@ def main():
             game = Game()
             while game.playing:
                 game.game_loop()
-            print("i")
             main_menu.game_toggle = False
             main_menu.playing = True
             del game
