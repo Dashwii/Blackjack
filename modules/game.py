@@ -98,6 +98,8 @@ class Game:
         self.hit_text = DrawText(chip_text_font, "Hit", (1400, 700), WHITE)
         self.stay_text = DrawText(chip_text_font, "Stay", (1400, 775), WHITE)
         self.double_text = DrawText(chip_text_font, "Double", (150, 325), WHITE)
+        self.all_in_text = DrawText(chip_text_font, "All in", (150, 150), WHITE)
+        self.clear_bet_text = DrawText(chip_text_font, "Clear bet", (350, 205), WHITE)
         self.player_hand_value = 0
         self.dealer_hand_value = 0
         self.player_hand_value_text = DrawText(chip_text_font, f"{self.player_hand_value}", (WIDTH // 2, HEIGHT - 250), WHITE)
@@ -130,12 +132,12 @@ class Game:
         self.blackjack = False
 
     def game_loop(self):
-        self.clock.tick(FPS)
         pygame.time.set_timer(self.update_cards_y, 20)
         pygame.time.set_timer(self.update_cards_x, 1)
         pygame.time.set_timer(self.card_dealing_interval, 500)
         random.shuffle(self.unused_cards)
         while self.playing:
+            self.clock.tick(FPS)
             self.process_events()
             self.render()
             self.reset_input()
@@ -256,6 +258,22 @@ class Game:
                 self.bet_text.update_text(f"Bet: ${self.bet_amount}")
                 self.double_available = False
 
+            if self.all_in_text.text_rect.collidepoint(mouse_pos) and not self.round_playing:
+                for chip in self.chips[::-1]:
+                    chips_in = self.money // chip.value
+                    self.money -= chip.value * chips_in
+                    self.bet_amount += chip.value * chips_in
+                    self.money_text.update_text(f"Money: ${self.money}")
+                    self.bet_text.update_text(f"Bet: ${self.bet_amount}")
+                    [self.placed_chips.append(PlacedChip(chip.value)) for _ in range(chips_in)]
+
+            if self.clear_bet_text.text_rect.collidepoint(mouse_pos) and not self.round_playing:
+                self.placed_chips = []
+                self.money += self.bet_amount
+                self.bet_amount = 0
+                self.money_text.update_text(f"Money: ${self.money}")
+                self.bet_text.update_text(f"Bet: ${self.bet_amount}")
+
         player_hand_width_of_cards = len(self.player_hand) * 125
         dealer_hand_width_of_cards = len(self.dealer.hand) * 125
 
@@ -314,6 +332,7 @@ class Game:
             self.win_screen("Dealer wins!")
             if self.money == 0:
                 self.lost_game()
+                return
             self.shuffle_cards()
 
         self.player_hand_value_text.update_text(f"{self.player_hand_value}")
@@ -335,9 +354,9 @@ class Game:
             pygame.display.update()
 
     def shuffle_cards(self):
-        if not len(self.unused_cards) < 26:
+        if not len(self.unused_cards) < 14:
             return
-        if len(self.unused_cards) < 12:
+        if len(self.unused_cards) < 8:
             pass
         elif not random.randint(1, 5) == 1:
             return
@@ -417,6 +436,10 @@ class Game:
 
         if len(self.placed_chips) > 0 and not self.round_playing and not self.dealing_cards:
             self.deal_text.draw()
+            self.clear_bet_text.draw()
+
+        if len(self.placed_chips) == 0:
+            self.all_in_text.draw()
         if self.round_playing and not self.player_stay:
             self.hit_text.draw()
             self.stay_text.draw()
