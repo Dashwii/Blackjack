@@ -92,6 +92,7 @@ class Game:
         self.keys_pressed = {"Mouse_1": False}
         self.money = 2500
         self.bet_amount = 0
+        self.last_bet_amount = 0
         self.money_text = DrawText(chip_text_font, f"Money: ${self.money}", (129, 25), WHITE)
         self.bet_text = DrawText(chip_text_font, f"Bet: ${self.bet_amount}", (72, 75), WHITE)
         self.deal_text = DrawText(chip_text_font, "Deal", (1400, 700), WHITE)
@@ -245,6 +246,8 @@ class Game:
                 if card.card_value == 11:
                     card.ace_check_value(sum([card.card_value for card in self.player_hand]))
                 self.player_hand.append(card)
+                if self.double_available:
+                    self.double_available = False
                 if check_value_of_hand(self.player_hand) == 21 and not self.player_won:
                     self.player_won = True
                     self.time_since_win = time.time()
@@ -259,13 +262,7 @@ class Game:
                 self.double_available = False
 
             if self.all_in_text.text_rect.collidepoint(mouse_pos) and not self.round_playing:
-                for chip in self.chips[::-1]:
-                    chips_in = self.money // chip.value
-                    self.money -= chip.value * chips_in
-                    self.bet_amount += chip.value * chips_in
-                    self.money_text.update_text(f"Money: ${self.money}")
-                    self.bet_text.update_text(f"Bet: ${self.bet_amount}")
-                    [self.placed_chips.append(PlacedChip(chip.value)) for _ in range(chips_in)]
+                self.insert_all_chips()
 
             if self.clear_bet_text.text_rect.collidepoint(mouse_pos) and not self.round_playing:
                 self.placed_chips = []
@@ -315,18 +312,21 @@ class Game:
                 self.time_since_win = time.time()
 
         if self.blackjack and not self.dealing_cards and time.time() - self.time_since_win > 1.5:
+            # Fix win screen to display correct amount of money won
+            initial_cash = self.money
             cash_won = self.bet_amount * 2
             self.money += cash_won
-            self.win_screen(f"Blackjack! You won ${cash_won}")
+            self.win_screen(f"You won ${abs(self.money - initial_cash) // 2}")
             self.shuffle_cards()
         elif self.push and not self.dealing_cards and time.time() - self.time_since_win > 1.5:
             self.money += self.bet_amount
             self.win_screen("Push!")
             self.shuffle_cards()
         elif self.player_won and not self.dealing_cards and time.time() - self.time_since_win > 1.5:
+            initial_cash = self.money
             cash_won = self.bet_amount * 2
             self.money += cash_won
-            self.win_screen(f"You won ${cash_won}!")
+            self.win_screen(f"You won ${abs(self.money - initial_cash) // 2}")
             self.shuffle_cards()
         elif self.dealer_won and not self.dealing_cards and time.time() - self.time_since_win > 1.5:
             self.win_screen("Dealer wins!")
@@ -338,7 +338,30 @@ class Game:
         self.player_hand_value_text.update_text(f"{self.player_hand_value}")
         self.dealer_hand_value_text.update_text(f"{self.dealer_hand_value}")
 
+    def insert_last_bet(self, last_bet):
+        for chip in self.chips[::-1]:
+            chips_in = last_bet // chip.value
+            chips_sum_value = chips_in * chip.value
+            if self.money - chips_sum_value < 0:
+                return
+            last_bet -= chips_sum_value
+            self.money -= chips_sum_value
+            self.bet_amount += chips_sum_value
+            self.money_text.update_text(f"Money: ${self.money}")
+            self.bet_text.update_text(f"Bet: ${self.bet_amount}")
+            [self.placed_chips.append(PlacedChip(chip.value)) for _ in range(chips_in)]
+
+    def insert_all_chips(self):
+        for chip in self.chips[::-1]:
+            chips_in = self.money // chip.value
+            self.money -= chip.value * chips_in
+            self.bet_amount += chip.value * chips_in
+            self.money_text.update_text(f"Money: ${self.money}")
+            self.bet_text.update_text(f"Bet: ${self.bet_amount}")
+            [self.placed_chips.append(PlacedChip(chip.value)) for _ in range(chips_in)]
+
     def win_screen(self, text):
+        self.last_bet_amount = self.bet_amount
         while True:
             WINDOW.fill(BLACK)
             win_text = DrawText(text_font, f"{text}", (WIDTH // 2, HEIGHT // 2), WHITE)
@@ -350,6 +373,7 @@ class Game:
                     pygame.quit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     self.reset_round()
+                    self.insert_last_bet(self.last_bet_amount)
                     return
             pygame.display.update()
 
