@@ -3,7 +3,7 @@ import pygame
 pygame.init()
 FPS = 60
 
-WIDTH, HEIGHT = 1500, 1000
+WIDTH, HEIGHT = 1800, 1100
 WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Blackjack")
 pygame.display.set_icon(pygame.image.load("./assets/icon.png"))

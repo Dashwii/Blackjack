@@ -95,9 +95,9 @@ class Game:
         self.last_bet_amount = 0
         self.money_text = DrawText(chip_text_font, f"Money: ${self.money}", (129, 25), WHITE)
         self.bet_text = DrawText(chip_text_font, f"Bet: ${self.bet_amount}", (72, 75), WHITE)
-        self.deal_text = DrawText(chip_text_font, "Deal", (1400, 700), WHITE)
-        self.hit_text = DrawText(chip_text_font, "Hit", (1400, 700), WHITE)
-        self.stay_text = DrawText(chip_text_font, "Stay", (1400, 775), WHITE)
+        self.deal_text = DrawText(chip_text_font, "Deal", (WIDTH - 100, 700), WHITE)
+        self.hit_text = DrawText(chip_text_font, "Hit", (WIDTH - 100, 700), WHITE)
+        self.stay_text = DrawText(chip_text_font, "Stay", (WIDTH - 100, 775), WHITE)
         self.double_text = DrawText(chip_text_font, "Double", (150, 325), WHITE)
         self.all_in_text = DrawText(chip_text_font, "All in", (150, 150), WHITE)
         self.clear_bet_text = DrawText(chip_text_font, "Clear bet", (350, 205), WHITE)
@@ -276,9 +276,9 @@ class Game:
 
         # Based on how many cards there are multiply the x offset of the card based on its index in the list
         for index, card in enumerate(self.player_hand[::-1]):
-            card.x_position = player_hand_width_of_cards // 2 + (750 - card.card_rect.width) - index * 125
+            card.x_position = player_hand_width_of_cards // 2 + (WIDTH // 2 - card.card_rect.width) - index * 125
         for index, card in enumerate(self.dealer.hand[::-1]):
-            card.x_position = dealer_hand_width_of_cards // 2 + (750 - card.card_rect.width) - index * 125
+            card.x_position = dealer_hand_width_of_cards // 2 + (WIDTH // 2 - card.card_rect.width) - index * 125
 
         self.player_hand_value = sum([card.card_value for card in self.player_hand])
         if not self.player_stay:
@@ -329,14 +329,22 @@ class Game:
             self.win_screen(f"You won ${abs(self.money - initial_cash) // 2}")
             self.shuffle_cards()
         elif self.dealer_won and not self.dealing_cards and time.time() - self.time_since_win > 1.5:
-            self.win_screen("Dealer wins!")
             if self.money == 0:
+                self.win_screen("Dealer wins!")
                 self.lost_game()
                 return
+            self.win_screen("Dealer wins!")
             self.shuffle_cards()
 
         self.player_hand_value_text.update_text(f"{self.player_hand_value}")
         self.dealer_hand_value_text.update_text(f"{self.dealer_hand_value}")
+
+    @staticmethod
+    def draw_transparent_background():
+        s = pygame.Surface((WIDTH, HEIGHT))
+        s.set_alpha(200)
+        s.fill(BLACK)
+        WINDOW.blit(s, (0, 0))
 
     def insert_last_bet(self, last_bet):
         for chip in self.chips[::-1]:
@@ -362,8 +370,10 @@ class Game:
 
     def win_screen(self, text):
         self.last_bet_amount = self.bet_amount
+        self.reset_round()
+        self.insert_last_bet(self.last_bet_amount)
+        self.draw_transparent_background()
         while True:
-            WINDOW.fill(BLACK)
             win_text = DrawText(text_font, f"{text}", (WIDTH // 2, HEIGHT // 2), WHITE)
             win_text.draw()
             for event in pygame.event.get():
@@ -372,8 +382,6 @@ class Game:
                     pygame.display.quit()
                     pygame.quit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    self.reset_round()
-                    self.insert_last_bet(self.last_bet_amount)
                     return
             pygame.display.update()
 
@@ -416,6 +424,7 @@ class Game:
             pygame.display.update()
 
     def reset_round(self):
+        self.time_since_win = 0
         self.bet_amount = 0
         self.player_hand_value = 0
         self.dealer_hand_value = 0
